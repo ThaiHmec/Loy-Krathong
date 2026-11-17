@@ -17,9 +17,7 @@
       overflow-x: hidden;
       -webkit-tap-highlight-color: transparent;
     }
-    .font-thai-title {
-      font-family: 'Chonburi', serif;
-    }
+    .font-thai-title { font-family: 'Chonburi', serif; }
     .gold-gradient-text {
       background: linear-gradient(to right, #fde047, #f59e0b, #fef08a, #d97706);
       -webkit-background-clip: text;
@@ -47,13 +45,8 @@
       pointer-events: none;
       z-index: 0;
     }
-    #dropdown-list::-webkit-scrollbar {
-      width: 6px;
-    }
-    #dropdown-list::-webkit-scrollbar-thumb {
-      background: #f59e0b;
-      border-radius: 6px;
-    }
+    #dropdown-list::-webkit-scrollbar { width: 6px; }
+    #dropdown-list::-webkit-scrollbar-thumb { background: #f59e0b; border-radius: 6px; }
   </style>
 </head>
 <body class="relative pb-16">
@@ -90,7 +83,7 @@
       </div>
     </section>
 
-    <!-- ส่วนที่ 1: ช่องกรอกรายชื่อกำลังพล (รองรับมือถือใช้งานง่าย) -->
+    <!-- ส่วนที่ 1: ช่องกรอกรายชื่อกำลังพล -->
     <section class="mb-6 bg-gradient-to-r from-indigo-950/90 to-slate-900/90 rounded-2xl p-4 sm:p-5 gold-border relative z-30">
       <h2 class="text-sm sm:text-base font-semibold text-amber-300 mb-2">
         📝 รายชื่อกำลังพลเข้าร่วมโหวต
@@ -110,7 +103,7 @@
       </div>
     </section>
 
-    <!-- ส่วนที่ 2: แสดงรูปภาพผู้ประกวด (ขนาดพอดี ไม่ใหญ่เกินไป + กดดูรูปใหญ่ได้) -->
+    <!-- ส่วนที่ 2: แสดงรูปภาพผู้ประกวด -->
     <section class="relative z-10">
       <h2 class="text-sm sm:text-base font-semibold text-amber-300 mb-3">
         🪷 เลือกผู้เข้าประกวดนางนพมาศที่ต้องการโหวต
@@ -132,6 +125,9 @@
   </div>
 
   <script>
+    // 🔴 นำ URL จาก Google Apps Script (ลงท้ายด้วย /exec) มาวางแทนที่ข้อความด้านล่างนี้ 🔴
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3kYk9j4rV_gg87I3va6DgS8-QOVWJ4ayTRbwXHaXDDh_Hv0Z8scCkWJWspOfm1Vr0/exec';
+
     let allVoters = [];
     let allContestants = [];
     let selectedVoter = '';
@@ -141,30 +137,36 @@
       setInterval(refreshLeaderboard, 10000);
     };
 
-    function loadData() {
-      google.script.run
-        .withSuccessHandler(function(data) {
-          allVoters = data.voters || [];
-          allContestants = data.contestants || [];
-          
-          const input = document.getElementById('voter-input');
-          input.disabled = false;
-          input.placeholder = `แตะเพื่อเลือกรายชื่อ (${allVoters.length} ท่าน)...`;
-          
-          renderContestants(allContestants);
-          renderLeaderboard(data.leaderboard || []);
-        })
-        .withFailureHandler(function(err) {
-          document.getElementById('voter-input').placeholder = 'เกิดข้อผิดพลาด กรุณารีเฟรชหน้าเว็บ';
-          console.error(err);
-        })
-        .getInitialData();
+    // ดึงข้อมูลเริ่มต้นผ่าน Fetch API
+    async function loadData() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?action=getInitialData`);
+        const data = await response.json();
+        
+        allVoters = data.voters || [];
+        allContestants = data.contestants || [];
+        
+        const input = document.getElementById('voter-input');
+        input.disabled = false;
+        input.placeholder = `แตะเพื่อเลือกรายชื่อ (${allVoters.length} ท่าน)...`;
+        
+        renderContestants(allContestants);
+        renderLeaderboard(data.leaderboard || []);
+      } catch (err) {
+        document.getElementById('voter-input').placeholder = 'ไม่สามารถเชื่อมต่อฐานข้อมูล กรุณาตรวจสอบ SCRIPT_URL';
+        console.error(err);
+      }
     }
 
-    function refreshLeaderboard() {
-      google.script.run.withSuccessHandler(function(leaderboard) {
-        renderLeaderboard(leaderboard || []);
-      }).getLeaderboardData();
+    // อัปเดตผลคะแนน Top 5
+    async function refreshLeaderboard() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?action=getLeaderboard`);
+        const data = await response.json();
+        renderLeaderboard(data.leaderboard || []);
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     const voterInput = document.getElementById('voter-input');
@@ -234,7 +236,6 @@
 
       grid.innerHTML = contestants.map(c => `
         <div class="card-contestant rounded-2xl overflow-hidden gold-border flex flex-col">
-          <!-- รูปภาพขนาดพอดี พร้อมกดเพื่อดูรูปใหญ่ได้ -->
           <div class="relative aspect-square bg-slate-800 overflow-hidden cursor-pointer group" onclick="openImageModal('${c.image}', 'หมายเลข ${c.no} - ${c.name.replace(/'/g, "\\'")}')">
             <img src="${c.image}" alt="${c.name}" class="w-full h-full object-cover object-top group-hover:scale-105 transition duration-300"
               onerror="this.src='https://cdn-icons-png.flaticon.com/512/4140/4140047.png'">
@@ -305,7 +306,7 @@
           <div class="text-left bg-slate-800 p-3 rounded-xl border border-amber-500/30 text-xs sm:text-sm space-y-1.5 mt-2">
             <p class="text-slate-300">ผู้โหวต: <strong class="text-amber-400">${currentName}</strong></p>
             <p class="text-slate-300">โหวตให้: <strong class="text-emerald-400">หมายเลข ${no} - ${contestantName}</strong></p>
-            <p class="text-[11px] text-rose-400 mt-2">* เมื่อกดตกลงแล้ว จะไม่สามารถโหวตซ้ำได้อีก</p>
+            <p class="text-[11px] text-rose-400 mt-2">* เมื่อกดตกลงแล้ว จะไม่สามารถแก้ไขหรือโหวตซ้ำได้อีก</p>
           </div>
         `,
         icon: 'question',
@@ -316,7 +317,7 @@
         cancelButtonText: 'ยกเลิก',
         background: '#0f172a',
         color: '#fff'
-      }).then((result) => {
+      }).then(async (result) => {
         if (result.isConfirmed) {
           Swal.fire({
             title: 'กำลังบันทึกคะแนน...',
@@ -326,7 +327,19 @@
             didOpen: () => { Swal.showLoading(); }
           });
 
-          google.script.run.withSuccessHandler(function(res) {
+          try {
+            // ส่งข้อมูลแบบ POST โดยใช้ text/plain เพื่อเลี่ยง CORS Preflight ของ Google Apps Script
+            const response = await fetch(SCRIPT_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                voterName: currentName,
+                contestantNo: no,
+                contestantName: contestantName
+              })
+            });
+            const res = await response.json();
+
             if (res.success) {
               allVoters = allVoters.filter(v => v !== currentName);
               selectedVoter = '';
@@ -354,7 +367,16 @@
               });
               loadData();
             }
-          }).submitVote(currentName, no, contestantName);
+          } catch (err) {
+            Swal.fire({
+              icon: 'error',
+              title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+              text: 'กรุณาลองกดยืนยันใหม่อีกครั้ง',
+              confirmButtonColor: '#ef4444',
+              background: '#0f172a',
+              color: '#fff'
+            });
+          }
         }
       });
     }
